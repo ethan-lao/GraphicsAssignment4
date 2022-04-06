@@ -192,13 +192,18 @@ export class GUI implements IGUI {
 
       switch (mouse.buttons) {
         case 1: {
-          let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
-          rotAxis = rotAxis.normalize();
-
-          if (this.fps) {
-            this.camera.rotate(rotAxis, GUI.rotationSpeed);
+          if (false) {
+            // if a bone is selected, move it
           } else {
-            this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
+            // otherwise it's normal, move the screen around
+            let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
+            rotAxis = rotAxis.normalize();
+  
+            if (this.fps) {
+              this.camera.rotate(rotAxis, GUI.rotationSpeed);
+            } else {
+              this.camera.orbitTarget(rotAxis, GUI.rotationSpeed);
+            }
           }
           break;
         }
@@ -217,6 +222,42 @@ export class GUI implements IGUI {
     // You will want logic here:
     // 1) To highlight a bone, if the mouse is hovering over a bone;
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+    let pos: Vec3 = this.camera.pos();
+    let dir: Vec3 = this.unproject(x, y);
+
+    let chosen: Bone = null;
+    let closestBoneDist: number = Number.MAX_SAFE_INTEGER;
+
+    for (let b of this.animation.getScene().meshes[0].bones) {
+      let boneDist: number = b.intersect(pos, dir);
+      if (boneDist >= 0 && boneDist < closestBoneDist) {
+        closestBoneDist = boneDist;
+        chosen = b;
+      }
+    }
+
+    this.animation.getScene().meshes[0].highlightedBone = chosen;
+    console.log("DONE CHECKING BONES")
+  }
+
+  // unproject: screen to world coord
+  public unproject(x: number, y: number) : Vec3 {
+    let newX: number = ((2 * x) / this.width) - 1;
+    let newY: number = 1 - ((2 * y) / this.viewPortHeight);
+
+    let mouseNDC: Vec4 = new Vec4([newX, newY, -1, 1]);
+
+    let invV = this.viewMatrix().inverse();
+    let invP = this.projMatrix().inverse();
+  
+    let mouseWorld: Vec4 = invV.multiplyVec4(invP.multiplyVec4(mouseNDC));
+    mouseWorld.scale(1 / mouseWorld.w);
+    
+    let rayDir = new Vec3(mouseWorld.xyz);
+    rayDir = Vec3.difference(rayDir, this.camera.pos());
+    rayDir.normalize();
+
+    return rayDir;
   }
 
   public getModeString(): string {

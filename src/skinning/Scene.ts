@@ -1,4 +1,4 @@
-import { Mat4, Quat, Vec3 } from "../lib/TSM.js";
+import { Mat4, Quat, Vec3, Vec4, Mat3 } from "../lib/TSM.js";
 import { AttributeLoader, MeshGeometryLoader, BoneLoader, MeshLoader } from "./AnimationFileLoader.js";
 
 export class Attribute {
@@ -50,6 +50,9 @@ export class Bone {
   public offset: number; // used when parsing the Collada file---you probably don't need to touch these
   public initialTransformation: Mat4;
 
+  static readonly RAY_EPSILON: number = .0001;
+  static readonly CYL_RADIUS: number = .5;
+
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
     this.children = Array.from(bone.children);
@@ -61,6 +64,62 @@ export class Bone {
     this.initialEndpoint = bone.initialEndpoint.copy();
     this.initialTransformation = bone.initialTransformation.copy();
   }
+
+  public intersect(pos: Vec3, dir: Vec3): number {
+    let bonePos = this.position;
+
+    let start = this.position;
+    let end = this.endpoint;
+    let boneDir = Vec3.difference(end, start).normalize();
+
+    console.log(pos);
+    console.log(dir);
+    console.log(start)
+    console.log(boneDir);
+
+    // https://www.geeksforgeeks.org/shortest-distance-between-two-lines-in-3d-space-class-12-maths/
+    
+    // get distance
+    let cross = Vec3.cross(dir, boneDir);
+    let ptDiff = Vec3.difference(bonePos, pos);
+    let distance = Vec3.product(cross, ptDiff).length() / cross.length();
+    console.log(distance)
+
+    if (distance > Bone.CYL_RADIUS) {
+      return -1;
+    }
+
+    // https://math.stackexchange.com/questions/1359446/how-to-find-the-points-of-intersection-of-the-perpendicular-vector-two-skew-line
+    
+    // point on cylinder
+    let q2 = Vec3.sum(bonePos, 
+      boneDir.scale(
+        Vec3.dot(ptDiff, Vec3.cross(dir, cross)) / 
+        Vec3.dot(cross, cross)
+      ));
+
+    // check if within endpoints of cylinder
+    let cylinderLength = Vec3.difference(end, start).length();
+    if (Vec3.difference(end, q2).length() > cylinderLength ||
+      Vec3.difference(start, q2).length() > cylinderLength) {
+        return -1;
+    }
+
+    // point on our ray
+    let q1 = Vec3.sum(bonePos, 
+      boneDir.scale(
+        Vec3.dot(ptDiff, Vec3.cross(dir, cross)) / 
+        Vec3.dot(cross, cross)
+      ));
+
+    // check if behind us
+    if (Vec3.difference(q1, Vec3.sum(pos, dir.scale(Bone.RAY_EPSILON))).length() >
+      Vec3.difference(q1, pos).length()) {
+      return -1;
+    }
+
+    return Math.abs(Vec3.difference(q1, pos).length());
+  }
 }
 
 export class Mesh {
@@ -70,6 +129,8 @@ export class Mesh {
   public bones: Bone[];
   public materialName: string;
   public imgSrc: String | null;
+
+  public highlightedBone: Bone = null;
 
   private boneIndices: number[];
   private bonePositions: Float32Array;
@@ -122,5 +183,23 @@ export class Mesh {
       }
     });
     return trans;
+  }
+
+  public getBoneHighlights(): Float32Array {
+    let highlights = new Float32Array(4 * this.bones.length);
+
+    this.bones.forEach((bone, index) => {
+      let color = [1.0, 0.0, 0.0, 1.0];
+      if (bone == this.highlightedBone) {
+        color = [1.0, 1.0, 0.0, 1.0];
+      }
+
+      highlights[4 * index] = color[0];
+      highlights[4 * index + 1] = color[1];
+      highlights[4 * index + 2] = color[2];
+      highlights[4 * index + 3] = color[3];
+    });
+
+    return highlights;
   }
 }
