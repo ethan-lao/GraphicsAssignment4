@@ -5,6 +5,8 @@ import { Mat4, Vec3, Vec4, Vec2, Mat2, Quat } from "../lib/TSM.js";
 import { Bone } from "./Scene.js";
 import { RenderPass } from "../lib/webglutils/RenderPass.js";
 
+import { Vector3 } from "../lib/threejs/src/Three.js";
+
 /**
  * Might be useful for designing any animation GUI
  */
@@ -224,6 +226,7 @@ export class GUI implements IGUI {
     // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
     let pos: Vec3 = this.camera.pos();
     let dir: Vec3 = this.unproject(x, y);
+    // let dir = new Vector3(x, y).unproject(this.camera)
 
     let chosen: Bone = null;
     let closestBoneDist: number = Number.MAX_SAFE_INTEGER;
@@ -245,13 +248,10 @@ export class GUI implements IGUI {
     let newX: number = ((2 * x) / this.width) - 1;
     let newY: number = 1 - ((2 * y) / this.viewPortHeight);
 
-    let mouseNDC: Vec4 = new Vec4([newX, newY, -1, 1]);
-
-    let invV = this.viewMatrix().inverse();
-    let invP = this.projMatrix().inverse();
-  
-    let mouseWorld: Vec4 = invV.multiplyVec4(invP.multiplyVec4(mouseNDC));
-    mouseWorld.scale(1 / mouseWorld.w);
+    let mouseNDC: Vec4 = new Vec4([newX, newY, 0, 1]);
+    let invPV = Mat4.product(this.projMatrix(), this.viewMatrix()).inverse()
+    let mouseWorld = invPV.multiplyVec4(mouseNDC);
+    mouseWorld = mouseWorld.scale(1 / mouseWorld.w);
     
     let rayDir = new Vec3(mouseWorld.xyz);
     rayDir = Vec3.difference(rayDir, this.camera.pos());
