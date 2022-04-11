@@ -51,7 +51,7 @@ export class Bone {
   public initialTransformation: Mat4;
 
   static readonly RAY_EPSILON: number = .0001;
-  static readonly CYL_RADIUS: number = .5;
+  static readonly CYL_RADIUS: number = .1;
 
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
@@ -72,18 +72,12 @@ export class Bone {
     let end = this.endpoint;
     let boneDir = Vec3.difference(end, start).normalize();
 
-    console.log(pos);
-    console.log(dir);
-    console.log(start)
-    console.log(boneDir);
-
     // https://www.geeksforgeeks.org/shortest-distance-between-two-lines-in-3d-space-class-12-maths/
     
     // get distance
     let cross = Vec3.cross(dir, boneDir);
     let ptDiff = Vec3.difference(bonePos, pos);
-    let distance = Vec3.product(cross, ptDiff).length() / cross.length();
-    console.log(distance)
+    let distance = Math.abs(Vec3.dot(ptDiff, cross.normalize()));
 
     if (distance > Bone.CYL_RADIUS) {
       return -1;
