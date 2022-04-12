@@ -55,6 +55,7 @@ export class GUI implements IGUI {
   public hoverX: number = 0;
   public hoverY: number = 0;
 
+  public dragBone: Bone = null;
 
   /**
    *
@@ -194,8 +195,18 @@ export class GUI implements IGUI {
 
       switch (mouse.buttons) {
         case 1: {
-          if (false) {
+          let highlightedBone = this.animation.getScene().meshes[0].highlightedBone;
+          if (highlightedBone != null || this.dragBone) {
             // if a bone is selected, move it
+            if (this.dragBone == null) {
+              this.dragBone = highlightedBone;
+            }
+
+            // let boneDir: Vec3 = Vec3.difference(this.dragBone.endpoint, this.dragBone.position);
+            let lookDir: Vec3 = this.unproject(x, y);
+            let axis: Vec3 = Vec3.cross(mouseDir, lookDir);
+            let update = Quat.fromAxisAngle(axis, GUI.rotationSpeed);
+            this.animation.getScene().meshes[0].rotateBone(this.dragBone, update);
           } else {
             // otherwise it's normal, move the screen around
             let rotAxis: Vec3 = Vec3.cross(this.camera.forward(), mouseDir);
@@ -218,29 +229,30 @@ export class GUI implements IGUI {
           break;
         }
       }
-    } 
-    
-    // TODO
-    // You will want logic here:
-    // 1) To highlight a bone, if the mouse is hovering over a bone;
-    // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
-    let pos: Vec3 = this.camera.pos();
-    let dir: Vec3 = this.unproject(x, y);
-    // let dir = new Vector3(x, y).unproject(this.camera)
+    } else {
+      this.dragBone = null;
 
-    let chosen: Bone = null;
-    let closestBoneDist: number = Number.MAX_SAFE_INTEGER;
+      // TODO
+      // You will want logic here:
+      // 1) To highlight a bone, if the mouse is hovering over a bone;
+      // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
+      let pos: Vec3 = this.camera.pos();
+      let dir: Vec3 = this.unproject(x, y);
+      // let dir = new Vector3(x, y).unproject(this.camera)
 
-    for (let b of this.animation.getScene().meshes[0].bones) {
-      let boneDist: number = b.intersect(pos, dir);
-      if (boneDist >= 0 && boneDist < closestBoneDist) {
-        closestBoneDist = boneDist;
-        chosen = b;
+      let chosen: Bone = null;
+      let closestBoneDist: number = Number.MAX_SAFE_INTEGER;
+
+      for (let b of this.animation.getScene().meshes[0].bones) {
+        let boneDist: number = b.intersect(pos, dir);
+        if (boneDist >= 0 && boneDist < closestBoneDist) {
+          closestBoneDist = boneDist;
+          chosen = b;
+        }
       }
-    }
 
-    this.animation.getScene().meshes[0].highlightedBone = chosen;
-    console.log("DONE CHECKING BONES")
+      this.animation.getScene().meshes[0].highlightedBone = chosen;
+    }
   }
 
   // unproject: screen to world coord

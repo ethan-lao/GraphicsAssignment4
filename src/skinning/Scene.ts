@@ -1,3 +1,4 @@
+import { ToneMapping } from "../lib/threejs/src/constants.js";
 import { Mat4, Quat, Vec3, Vec4, Mat3 } from "../lib/TSM.js";
 import { AttributeLoader, MeshGeometryLoader, BoneLoader, MeshLoader } from "./AnimationFileLoader.js";
 
@@ -53,6 +54,9 @@ export class Bone {
   static readonly RAY_EPSILON: number = .0001;
   static readonly CYL_RADIUS: number = .1;
 
+  public localRot;
+  public transB;
+
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
     this.children = Array.from(bone.children);
@@ -63,11 +67,12 @@ export class Bone {
     this.initialPosition = bone.initialPosition.copy();
     this.initialEndpoint = bone.initialEndpoint.copy();
     this.initialTransformation = bone.initialTransformation.copy();
+
+    this.localRot = bone.rotation.copy();
+    this.transB = Mat4.identity.copy();
   }
 
   public intersect(pos: Vec3, dir: Vec3): number {
-    let bonePos = this.position;
-
     let start = this.position;
     let end = this.endpoint;
     let boneDir = Vec3.difference(end, start).normalize();
@@ -76,7 +81,7 @@ export class Bone {
     
     // get distance
     let cross = Vec3.cross(dir, boneDir);
-    let ptDiff = Vec3.difference(bonePos, pos);
+    let ptDiff = Vec3.difference(start, pos);
     let distance = Math.abs(Vec3.dot(ptDiff, cross.normalize()));
 
     if (distance > Bone.CYL_RADIUS) {
@@ -86,7 +91,7 @@ export class Bone {
     // https://math.stackexchange.com/questions/1359446/how-to-find-the-points-of-intersection-of-the-perpendicular-vector-two-skew-line
     
     // point on cylinder
-    let q2 = Vec3.sum(bonePos, 
+    let q2 = Vec3.sum(start, 
       boneDir.scale(
         Vec3.dot(ptDiff, Vec3.cross(dir, cross)) / 
         Vec3.dot(cross, cross)
@@ -100,7 +105,7 @@ export class Bone {
     }
 
     // point on our ray
-    let q1 = Vec3.sum(bonePos, 
+    let q1 = Vec3.sum(start, 
       boneDir.scale(
         Vec3.dot(ptDiff, Vec3.cross(dir, cross)) / 
         Vec3.dot(cross, cross)
@@ -113,6 +118,14 @@ export class Bone {
     }
 
     return Math.abs(Vec3.difference(q1, pos).length());
+  }
+
+  // public rotate(update) {
+  //   this.rotation = update;
+  // }
+
+  public rotate(update) {
+    this.localRot = Quat.product(this.localRot, update);
   }
 }
 
@@ -132,13 +145,19 @@ export class Mesh {
   private bonePositions: Float32Array;
   private boneIndexAttribute: Float32Array;
 
+  public roots: Bone[] = [];
+
   constructor(mesh: MeshLoader) {
     this.geometry = new MeshGeometry(mesh.geometry);
     this.worldMatrix = mesh.worldMatrix.copy();
     this.rotation = mesh.rotation.copy();
     this.bones = [];
     mesh.bones.forEach(bone => {
-      this.bones.push(new Bone(bone));
+      let thisbone = new Bone(bone);
+      this.bones.push(thisbone);
+      if (thisbone.parent == -1) {
+        this.roots.push(thisbone);
+      }
     });
     this.materialName = mesh.materialName;
     this.imgSrc = null;
@@ -180,7 +199,28 @@ export class Mesh {
     // console.log(newBoneIndexAttribute);
     this.boneIndexAttribute = new Float32Array(newBoneIndexAttribute);
 
+    this.bones.forEach(newBone => {this.setTransB(newBone)});
+  }
 
+  public setTransB(bone: Bone) {
+    let transBji: Mat4 = Mat4.identity.copy();
+    
+    let c: Vec3 = bone.initialPosition;
+    let p: Vec3 = new Vec3([0, 0, 0]);
+
+    if (bone.parent != -1) {
+      p = this.bones[bone.parent].initialPosition;
+    }
+
+    let vec: Vec3 = Vec3.difference(c, p);
+    //console.log(vec);
+    transBji = new Mat4([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      vec.x, vec.y, vec.z, 1
+    ]);
+    bone.transB = transBji;
   }
 
   public getBoneIndices(): Uint32Array {
@@ -248,4 +288,43 @@ export class Mesh {
 
     return -1;
   }
-}
+
+  public rotateBone(bone, update) {
+    bone.rotate(update);
+    this.updateRotations();
+    this.updatePositions();
+  }
+
+  public updateRotationsRecursively(bone, update) {
+    bone.rotation = Quat.product(bone.localRot, update);
+    for (let i of bone.children) {
+      this.updateRotationsRecursively(this.bones[i], bone.rotation);
+    }
+  }
+
+  public updateRotations() {
+    this.roots.forEach(bone => {
+      bone.rotation = bone.localRot;
+      for (let i of bone.children) {
+        this.updateRotationsRecursively(this.bones[i], bone.rotation);
+      }
+    })
+  }
+
+  public updatePositions() {
+    this.bones.forEach((bone) => {
+      bone.position = new Vec3(this.defMatrix(bone).multiplyVec4(new Vec4([0, 0, 0, 1])).xyz);
+    })
+  }
+
+  public defMatrix(bone) {
+    let localRot = bone.localRot.toMat4();
+
+    let prod = Mat4.product(bone.transB, localRot)
+    if (bone.parent == -1) {
+      return prod;
+    }
+
+    return Mat4.product(this.defMatrix(this.bones[bone.parent]), prod);
+  }
+};
