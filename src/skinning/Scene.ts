@@ -125,6 +125,8 @@ export class Mesh {
   public imgSrc: String | null;
 
   public highlightedBone: Bone = null;
+  static readonly DEFAULT_COLOR = [1.0, 0.0, 0.0, 1.0];
+  static readonly HIGHLIGHT_COLOR = [0.0, 1.0, 1.0, 1.0];
 
   private boneIndices: number[];
   private bonePositions: Float32Array;
@@ -140,9 +142,45 @@ export class Mesh {
     });
     this.materialName = mesh.materialName;
     this.imgSrc = null;
+
     this.boneIndices = Array.from(mesh.boneIndices);
-    this.bonePositions = new Float32Array(mesh.bonePositions);
-    this.boneIndexAttribute = new Float32Array(mesh.boneIndexAttribute);
+    // let startIdx = this.boneIndices.length;
+    // this.boneIndices.push(
+    //   startIdx, startIdx + 1,
+    //   startIdx + 2, startIdx + 3,
+    //   startIdx + 4, startIdx + 5);
+    // console.log(this.boneIndices);
+    
+    let newBonePos = Array.from(mesh.bonePositions);
+    // let idx = 0;
+    // newBonePos.push(
+    //   newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
+    //   newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5] + .5, 
+    // );
+
+    // newBonePos.push(
+    //   newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
+    //   newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5] - .5, 
+    // );
+
+    // newBonePos.push(
+    //   newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
+    //   newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5] + .8, 
+    // );
+    // console.log(newBonePos);
+    this.bonePositions = new Float32Array(newBonePos);
+
+    let newBoneIndexAttribute = Array.from(mesh.boneIndexAttribute)
+    // let idxAttr = newBoneIndexAttribute.length / 2;
+    // newBoneIndexAttribute.push(
+    //   idxAttr, idxAttr,
+    //   idxAttr + 1, idxAttr + 1,
+    //   idxAttr + 2, idxAttr + 2
+    // );
+    // console.log(newBoneIndexAttribute);
+    this.boneIndexAttribute = new Float32Array(newBoneIndexAttribute);
+
+
   }
 
   public getBoneIndices(): Uint32Array {
@@ -183,17 +221,31 @@ export class Mesh {
     let highlights = new Float32Array(4 * this.bones.length);
 
     this.bones.forEach((bone, index) => {
-      let color = [1.0, 0.0, 0.0, 1.0];
+      let color = Mesh.DEFAULT_COLOR;
       if (bone == this.highlightedBone) {
-        color = [1.0, 1.0, 0.0, 1.0];
+        color = Mesh.HIGHLIGHT_COLOR;
       }
 
-      highlights[4 * index] = color[0];
+      highlights[4 * index + 0] = color[0];
       highlights[4 * index + 1] = color[1];
       highlights[4 * index + 2] = color[2];
       highlights[4 * index + 3] = color[3];
     });
 
     return highlights;
+  }
+
+  public highlightedBoneIndex(): number {
+    if (this.highlightedBone == null) {
+      return -1;
+    }
+
+    for (let i = 0; i < this.bones.length; i++) {
+      if (this.bones[i] == this.highlightedBone) {
+        return i;
+      }
+    }
+
+    return -1;
   }
 }
