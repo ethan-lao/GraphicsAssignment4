@@ -202,9 +202,9 @@ export class GUI implements IGUI {
               this.dragBone = highlightedBone;
             }
 
-            // let boneDir: Vec3 = Vec3.difference(this.dragBone.endpoint, this.dragBone.position);
+            let boneDir: Vec3 = Vec3.difference(this.dragBone.endpoint, this.dragBone.position);
             let lookDir: Vec3 = this.unproject(x, y);
-            let axis: Vec3 = Vec3.cross(mouseDir, lookDir);
+            let axis: Vec3 = Vec3.cross(lookDir, mouseDir);
             let update = Quat.fromAxisAngle(axis, GUI.rotationSpeed);
             this.animation.getScene().meshes[0].rotateBone(this.dragBone, update);
           } else {
@@ -238,7 +238,6 @@ export class GUI implements IGUI {
       // 2) To rotate a bone, if the mouse button is pressed and currently highlighting a bone.
       let pos: Vec3 = this.camera.pos();
       let dir: Vec3 = this.unproject(x, y);
-      // let dir = new Vector3(x, y).unproject(this.camera)
 
       let chosen: Bone = null;
       let closestBoneDist: number = Number.MAX_SAFE_INTEGER;

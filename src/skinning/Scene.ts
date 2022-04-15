@@ -55,7 +55,7 @@ export class Bone {
   static readonly CYL_RADIUS: number = .1;
 
   public localRot;
-  public transB;
+  public relativePos;
 
   constructor(bone: BoneLoader) {
     this.parent = bone.parent;
@@ -69,7 +69,7 @@ export class Bone {
     this.initialTransformation = bone.initialTransformation.copy();
 
     this.localRot = bone.rotation.copy();
-    this.transB = Mat4.identity.copy();
+    this.relativePos = Mat4.identity.copy();
   }
 
   public intersect(pos: Vec3, dir: Vec3): number {
@@ -120,12 +120,12 @@ export class Bone {
     return Math.abs(Vec3.difference(q1, pos).length());
   }
 
-  // public rotate(update) {
-  //   this.rotation = update;
-  // }
-
   public rotate(update) {
     this.localRot = Quat.product(this.localRot, update);
+  }
+
+  public hasParent() {
+    return this.parent != -1;
   }
 }
 
@@ -155,7 +155,7 @@ export class Mesh {
     mesh.bones.forEach(bone => {
       let thisbone = new Bone(bone);
       this.bones.push(thisbone);
-      if (thisbone.parent == -1) {
+      if (!thisbone.hasParent()) {
         this.roots.push(thisbone);
       }
     });
@@ -199,28 +199,23 @@ export class Mesh {
     // console.log(newBoneIndexAttribute);
     this.boneIndexAttribute = new Float32Array(newBoneIndexAttribute);
 
-    this.bones.forEach(newBone => {this.setTransB(newBone)});
+    this.bones.forEach(newBone => {
+      this.setRelativePos(newBone)
+    });
   }
 
-  public setTransB(bone: Bone) {
-    let transBji: Mat4 = Mat4.identity.copy();
-    
+  public setRelativePos(bone: Bone) { 
     let c: Vec3 = bone.initialPosition;
-    let p: Vec3 = new Vec3([0, 0, 0]);
-
-    if (bone.parent != -1) {
-      p = this.bones[bone.parent].initialPosition;
+    if (bone.hasParent()) {
+      c = Vec3.difference(c, this.bones[bone.parent].initialPosition);
     }
 
-    let vec: Vec3 = Vec3.difference(c, p);
-    //console.log(vec);
-    transBji = new Mat4([
+    bone.relativePos = new Mat4([
       1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
-      vec.x, vec.y, vec.z, 1
+      c.x, c.y, c.z, 1
     ]);
-    bone.transB = transBji;
   }
 
   public getBoneIndices(): Uint32Array {
@@ -257,6 +252,7 @@ export class Mesh {
     return trans;
   }
 
+  // returns the color of bones
   public getBoneHighlights(): Float32Array {
     let highlights = new Float32Array(4 * this.bones.length);
 
@@ -275,11 +271,14 @@ export class Mesh {
     return highlights;
   }
 
+  // get the index of the highlighted bone
   public highlightedBoneIndex(): number {
+    // done if no bone is highlighted anyways
     if (this.highlightedBone == null) {
       return -1;
     }
 
+    // loop through all bones
     for (let i = 0; i < this.bones.length; i++) {
       if (this.bones[i] == this.highlightedBone) {
         return i;
@@ -289,12 +288,14 @@ export class Mesh {
     return -1;
   }
 
+  // rotates a bone by update, propogate effects
   public rotateBone(bone, update) {
     bone.rotate(update);
     this.updateRotations();
     this.updatePositions();
   }
 
+  // updates bone rotations
   public updateRotationsRecursively(bone, update) {
     bone.rotation = Quat.product(bone.localRot, update);
     for (let i of bone.children) {
@@ -302,6 +303,7 @@ export class Mesh {
     }
   }
 
+  // update all bone rotations starting from root bones
   public updateRotations() {
     this.roots.forEach(bone => {
       bone.rotation = bone.localRot;
@@ -311,20 +313,24 @@ export class Mesh {
     })
   }
 
-  public updatePositions() {
-    this.bones.forEach((bone) => {
-      bone.position = new Vec3(this.defMatrix(bone).multiplyVec4(new Vec4([0, 0, 0, 1])).xyz);
-    })
+  // update all bone positions
+  public updatePositionsRecursively(bone, update) {
+    let prod = Mat4.product(bone.relativePos, bone.localRot.toMat4())
+    let thisUpdate = Mat4.product(update, prod);
+    bone.position = new Vec3(thisUpdate.multiplyVec4(new Vec4([0, 0, 0, 1])).xyz);
+    for (let i of bone.children) {
+      this.updatePositionsRecursively(this.bones[i], thisUpdate);
+    }
   }
 
-  public defMatrix(bone) {
-    let localRot = bone.localRot.toMat4();
-
-    let prod = Mat4.product(bone.transB, localRot)
-    if (bone.parent == -1) {
-      return prod;
-    }
-
-    return Mat4.product(this.defMatrix(this.bones[bone.parent]), prod);
+  // update all bone positions starting from root bones
+  public updatePositions() {
+    this.roots.forEach(bone => {
+      let update = Mat4.product(bone.relativePos, bone.localRot.toMat4())
+      bone.position = new Vec3(update.multiplyVec4(new Vec4([0, 0, 0, 1])).xyz);
+      for (let i of bone.children) {
+        this.updatePositionsRecursively(this.bones[i], update);
+      }
+    })
   }
 };

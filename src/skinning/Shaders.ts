@@ -69,20 +69,6 @@ export const sceneVSText = `
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
-    // void main () {
-    //     vec3 trans = vertPosition;
-    //     vec4 worldPosition = mWorld * vec4(trans, 1.0);
-    //     gl_Position = mProj * mView * worldPosition;
-        
-    //     //  Compute light direction and transform to camera coordinates
-    //     lightDir = lightPosition - worldPosition;
-        
-    //     vec4 aNorm4 = vec4(aNorm, 0.0);
-    //     normal = normalize(mWorld * vec4(aNorm, 0.0));
-
-    //     uv = aUV;
-    // }
-
     vec3 qtrans(vec4 q, vec3 v) {
         return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
     }
@@ -92,12 +78,12 @@ export const sceneVSText = `
     }
 
     void main () {
-        vec4 blendedVertex = vec4((weightedPos(int(skinIndices.x), skinWeights.x, v0)
-                            + weightedPos(int(skinIndices.y), skinWeights.y, v1)
-                            + weightedPos(int(skinIndices.z), skinWeights.z, v2)
-                            + weightedPos(int(skinIndices.w), skinWeights.w, v3)), 1.0);
+        vec4 trans = vec4((weightedPos(int(skinIndices.x), skinWeights.x, v0)
+                         + weightedPos(int(skinIndices.y), skinWeights.y, v1)
+                         + weightedPos(int(skinIndices.z), skinWeights.z, v2)
+                         + weightedPos(int(skinIndices.w), skinWeights.w, v3)), 1.0);
 
-        vec4 worldPosition = mWorld * blendedVertex;
+        vec4 worldPosition = mWorld * trans;
         gl_Position = mProj * mView * worldPosition;
         
         //  Compute light direction and transform to camera coordinates
