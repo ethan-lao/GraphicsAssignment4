@@ -202,7 +202,7 @@ export class GUI implements IGUI {
               this.dragBone = highlightedBone;
             }
 
-            let boneDir: Vec3 = Vec3.difference(this.dragBone.endpoint, this.dragBone.position);
+            // let boneDir: Vec3 = Vec3.difference(this.dragBone.endpoint, this.dragBone.position);
             let lookDir: Vec3 = this.unproject(x, y);
             let axis: Vec3 = Vec3.cross(lookDir, mouseDir);
             let update = Quat.fromAxisAngle(axis, GUI.rotationSpeed);
@@ -350,11 +350,25 @@ export class GUI implements IGUI {
         break;
       }
       case "ArrowLeft": {
-        this.camera.roll(GUI.rollSpeed, false);
+        let highlightedBone = this.animation.getScene().meshes[0].highlightedBone;
+        if (highlightedBone != null) {
+          let axis: Vec3 = Vec3.difference(highlightedBone.endpoint, highlightedBone.position);
+          let update = Quat.fromAxisAngle(axis, GUI.rollSpeed);
+          this.animation.getScene().meshes[0].rotateBone(highlightedBone, update);
+        } else {
+          this.camera.roll(GUI.rollSpeed, false);
+        }
         break;
       }
       case "ArrowRight": {
-        this.camera.roll(GUI.rollSpeed, true);
+        let highlightedBone = this.animation.getScene().meshes[0].highlightedBone;
+        if (highlightedBone != null) {
+          let axis: Vec3 = Vec3.difference(highlightedBone.endpoint, highlightedBone.position);
+          let update = Quat.fromAxisAngle(axis, -GUI.rollSpeed);
+          this.animation.getScene().meshes[0].rotateBone(highlightedBone, update);
+        } else {
+          this.camera.roll(GUI.rollSpeed, true);
+        }
         break;
       }
       case "ArrowUp": {

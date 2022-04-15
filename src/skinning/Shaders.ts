@@ -69,19 +69,19 @@ export const sceneVSText = `
     uniform vec3 jTrans[64];
     uniform vec4 jRots[64];
 
-    vec3 qtrans(vec4 q, vec3 v) {
-        return v + 2.0 * cross(cross(v, q.xyz) - q.w*v, q.xyz);
+    vec3 trans(vec3 vec, vec4 rot) {
+        return cross(cross(vec, rot.xyz) - rot.w * vec, rot.xyz) * 2.0;
     }
 
-    vec3 weightedPos(int index, float weight, vec4 vertPos) {
-        return weight * vec3(jTrans[index] + qtrans(jRots[index], vertPos.xyz));
+    vec3 pos(int index, vec4 pos) {
+        return vec3(pos.xyz + trans(pos.xyz, jRots[index]) + jTrans[index]);
     }
 
     void main () {
-        vec4 trans = vec4((weightedPos(int(skinIndices.x), skinWeights.x, v0)
-                         + weightedPos(int(skinIndices.y), skinWeights.y, v1)
-                         + weightedPos(int(skinIndices.z), skinWeights.z, v2)
-                         + weightedPos(int(skinIndices.w), skinWeights.w, v3)), 1.0);
+        vec4 trans = vec4((skinWeights.x * pos(int(skinIndices.x), v0) +
+                           skinWeights.y * pos(int(skinIndices.y), v1) +
+                           skinWeights.z * pos(int(skinIndices.z), v2) +
+                           skinWeights.w * pos(int(skinIndices.w), v3)), 1.0);
 
         vec4 worldPosition = mWorld * trans;
         gl_Position = mProj * mView * worldPosition;
