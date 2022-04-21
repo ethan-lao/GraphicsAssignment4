@@ -160,6 +160,11 @@ export class SkinningAnimation extends CanvasAnimation {
     this.sceneRenderPass.addAttribute("v3", 3, this.ctx.FLOAT, false,
       3 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].geometry.v3.values);
 
+    // this.sceneRenderPass.addUniform("vertPosition",
+    //   (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+    //     gl.uniform3fv(loc, this.scene.meshes[0].getBonePositions());
+    // });
+
     this.sceneRenderPass.addUniform("lightPosition",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
         gl.uniform4fv(loc, this.lightPosition.xyzw);
@@ -199,6 +204,11 @@ export class SkinningAnimation extends CanvasAnimation {
       3 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBonePositions());
     this.skeletonRenderPass.addAttribute("boneIndex", 1, this.ctx.FLOAT, false,
       1 * Float32Array.BYTES_PER_ELEMENT, 0, undefined, this.scene.meshes[0].getBoneIndexAttribute());
+
+    // this.skeletonRenderPass.addUniform("vertPosition",
+    //   (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {
+    //     gl.uniform3fv(loc, this.scene.meshes[0].getBonePositions());
+    // });
 
     this.skeletonRenderPass.addUniform("mWorld",
       (gl: WebGLRenderingContext, loc: WebGLUniformLocation) => {

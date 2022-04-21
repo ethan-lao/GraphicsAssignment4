@@ -139,8 +139,8 @@ export class Mesh {
 
   public highlightedBone: Bone = null;
   static readonly DEFAULT_COLOR = [1.0, 0.0, 0.0, 1.0];
-  static readonly HIGHLIGHT_COLOR = [0.0, 1.0, 1.0, 1.0];
-  static readonly NO_COLOR = [0.0, 0.0, 0.0, 0.0];
+  static readonly HIGHLIGHT_COLOR = [0.0, 0.0, 0.0, 0.0];
+  static readonly OFF_SCREEN = 5000;
 
   private boneIndices: number[];
   private bonePositions: Float32Array;
@@ -164,47 +164,47 @@ export class Mesh {
     this.imgSrc = null;
 
     this.boneIndices = Array.from(mesh.boneIndices);
-    let startIdx = this.boneIndices.length;
-    this.boneIndices.push(
-      startIdx, startIdx + 1,
-      startIdx + 2, startIdx + 3,
-      startIdx + 4, startIdx + 5,
-      startIdx + 6, startIdx + 7);
-    // console.log(this.boneIndices);
+    let numBoneIndices = this.boneIndices.length;
+    for (let i = 0; i < numBoneIndices / 2; i++) {
+      let startIdx = this.boneIndices.length;
+      this.boneIndices.push(
+        startIdx, startIdx + 1,
+        startIdx + 2, startIdx + 3,
+        startIdx + 4, startIdx + 5,
+        startIdx + 6, startIdx + 7);
+    }
     
+    console.log(this.boneIndices);
+    
+    let oldBonePos = Array.from(mesh.bonePositions);
     let newBonePos = Array.from(mesh.bonePositions);
-    let idx = 0;
-    newBonePos.push(
-      newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
-      newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5], 
-    );
-
-    newBonePos.push(
-      newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
-      newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5], 
-    );
-
-    newBonePos.push(
-      newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
-      newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5], 
-    );
-
-    newBonePos.push(
-      newBonePos[idx * 3], newBonePos[idx * 3 + 1], newBonePos[idx * 3 + 2], 
-      newBonePos[idx * 3 + 3], newBonePos[idx * 3 + 4], newBonePos[idx * 3 + 5], 
-    );
-    // console.log(newBonePos);
+    for (let i = 0; i < oldBonePos.length / 6; i += 1) {
+      for (let j = 0; j < 4; j++) {
+        newBonePos.push(
+          oldBonePos[6 * i],
+          oldBonePos[6 * i + 1],
+          oldBonePos[6 * i + 2],
+          oldBonePos[6 * i + 3],
+          oldBonePos[6 * i + 4],
+          oldBonePos[6 * i + 5]);
+      }
+    }
+    console.log(newBonePos);
     this.bonePositions = new Float32Array(newBonePos);
 
     let newBoneIndexAttribute = Array.from(mesh.boneIndexAttribute)
-    let idxAttr = newBoneIndexAttribute.length / 2;
-    newBoneIndexAttribute.push(
-      idxAttr, idxAttr,
-      idxAttr + 1, idxAttr + 1,
-      idxAttr + 2, idxAttr + 2,
-      idxAttr + 3, idxAttr + 3
-    );
-    // console.log(newBoneIndexAttribute);
+    let numIndexAttrs = newBoneIndexAttribute.length;
+    for (let i = 0; i < numIndexAttrs / 2; i++) {
+      let idxAttr = newBoneIndexAttribute.length / 2;
+      newBoneIndexAttribute.push(
+        idxAttr, idxAttr,
+        idxAttr + 1, idxAttr + 1,
+        idxAttr + 2, idxAttr + 2,
+        idxAttr + 3, idxAttr + 3
+      );
+    }
+    
+    console.log(newBoneIndexAttribute);
     this.boneIndexAttribute = new Float32Array(newBoneIndexAttribute);
 
     this.bones.forEach(newBone => {
@@ -239,70 +239,102 @@ export class Mesh {
   }
 
   public getBoneTranslations(): Float32Array {
-    let trans = new Float32Array(3 * (this.bones.length + 4));
+    let trans = new Float32Array(3 * (this.bones.length * 5));
+    let numbones = this.bones.length;
     this.bones.forEach((bone, index) => {
       let res = bone.position.xyz;
       for (let i = 0; i < res.length; i++) {
         trans[3 * index + i] = res[i];
       }
+
+      if (bone == this.highlightedBone) {
+        trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + Bone.CYL_RADIUS;
+        trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1];
+        trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2];
+
+        trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - Bone.CYL_RADIUS;
+        trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1];
+        trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2];
+
+        trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0];
+        trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1];
+        trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + Bone.CYL_RADIUS;
+
+        trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0];
+        trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1];
+        trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - Bone.CYL_RADIUS;
+      } else {
+        for (let i = 0; i < res.length; i++) {
+          trans[(3 * numbones) + (12 * index) + 0 + i] = Mesh.OFF_SCREEN;
+          trans[(3 * numbones) + (12 * index) + 3 + i] = Mesh.OFF_SCREEN;
+          trans[(3 * numbones) + (12 * index) + 6 + i] = Mesh.OFF_SCREEN;
+          trans[(3 * numbones) + (12 * index) + 9 + i] = Mesh.OFF_SCREEN;
+        }
+      }
     });
 
-    if (this.highlightedBone != null) {
-      for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
-        let res = this.highlightedBone.position.xyz;
-        for (let i = 0; i < res.length; i++) {
-          trans[3 * idx + i] = res[i];
-        }
-      }
+    // if (this.highlightedBone != null) {
+    //   for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
+    //     let res = this.highlightedBone.position.xyz;
+    //     for (let i = 0; i < res.length; i++) {
+    //       trans[3 * idx + i] = res[i];
+    //     }
+    //   }
 
-      // bone 1
-      trans[3 * this.bones.length] += Bone.CYL_RADIUS;
+    //   // bone 1
+    //   trans[3 * this.bones.length] += Bone.CYL_RADIUS;
 
-      // bone 2
-      trans[3 * (this.bones.length + 1)] -= Bone.CYL_RADIUS;
+    //   // bone 2
+    //   trans[3 * (this.bones.length + 1)] -= Bone.CYL_RADIUS;
 
-      // bone 3
-      trans[3 * (this.bones.length + 2) + 2] += Bone.CYL_RADIUS;
+    //   // bone 3
+    //   trans[3 * (this.bones.length + 2) + 2] += Bone.CYL_RADIUS;
 
-      // bone 4
-      trans[3 * (this.bones.length + 3) + 2] -= Bone.CYL_RADIUS;
+    //   // bone 4
+    //   trans[3 * (this.bones.length + 3) + 2] -= Bone.CYL_RADIUS;
 
-    } else {
-      // place off screen
-      for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
-        for (let i = 0; i < 3; i++) {
-          trans[3 * idx + i] = 5000;
-        }
-      }
-    }
+    // } else {
+    //   // place off screen
+    //   for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
+    //     for (let i = 0; i < 3; i++) {
+    //       trans[3 * idx + i] = 5000;
+    //     }
+    //   }
+    // }
 
     return trans;
   }
 
   public getBoneRotations(): Float32Array {
-    let trans = new Float32Array(4 * (this.bones.length + 4));
+    let trans = new Float32Array(4 * (this.bones.length * 5));
+    let numbones = this.bones.length;
     this.bones.forEach((bone, index) => {
       let res = bone.rotation.xyzw;
       for (let i = 0; i < res.length; i++) {
         trans[4 * index + i] = res[i];
+
+        trans[(4 * numbones) + (16 * index) + 0 + i] = res[i];
+        trans[(4 * numbones) + (16 * index) + 4 + i] = res[i];
+        trans[(4 * numbones) + (16 * index) + 8 + i] = res[i];
+        trans[(4 * numbones) + (16 * index) + 12 + i] = res[i];
       }
     });
 
-    if (this.highlightedBone != null) {
-      for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
-        let res = this.highlightedBone.rotation.xyzw;
-        for (let i = 0; i < res.length; i++) {
-          trans[4 * idx + i] = res[i];
-        }
-      }
-    }
+    // if (this.highlightedBone != null) {
+    //   for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
+    //     let res = this.highlightedBone.rotation.xyzw;
+    //     for (let i = 0; i < res.length; i++) {
+    //       trans[4 * idx + i] = res[i];
+    //     }
+    //   }
+    // }
 
     return trans;
   }
 
   // returns the color of bones
   public getBoneHighlights(): Float32Array {
-    let highlights = new Float32Array(4 * (this.bones.length + 4));
+    let highlights = new Float32Array(4 * (this.bones.length * 5));
 
     this.bones.forEach((bone, index) => {
       let color = Mesh.DEFAULT_COLOR;
@@ -315,22 +347,6 @@ export class Mesh {
       highlights[4 * index + 2] = color[2];
       highlights[4 * index + 3] = color[3];
     });
-
-    if (this.highlightedBone != null) {
-      for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
-        highlights[4 * idx + 0] = Mesh.HIGHLIGHT_COLOR[0];
-        highlights[4 * idx + 1] = Mesh.HIGHLIGHT_COLOR[1];
-        highlights[4 * idx + 2] = Mesh.HIGHLIGHT_COLOR[2];
-        highlights[4 * idx + 3] = Mesh.HIGHLIGHT_COLOR[3];
-      }
-    } else {
-      for (let idx = this.bones.length; idx < this.bones.length + 4; idx++) {
-        highlights[4 * idx + 0] = Mesh.NO_COLOR[0];
-        highlights[4 * idx + 1] = Mesh.NO_COLOR[1];
-        highlights[4 * idx + 2] = Mesh.NO_COLOR[2];
-        highlights[4 * idx + 3] = Mesh.NO_COLOR[3];
-      }
-    }
 
     return highlights;
   }

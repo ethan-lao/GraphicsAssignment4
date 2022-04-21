@@ -60,7 +60,7 @@ export const sceneVSText = `
     varying vec4 lightDir;
     varying vec2 uv;
     varying vec4 normal;
- 
+    
     uniform vec4 lightPosition;
     uniform mat4 mWorld;
     uniform mat4 mView;
