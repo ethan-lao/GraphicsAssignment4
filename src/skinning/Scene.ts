@@ -248,21 +248,29 @@ export class Mesh {
       }
 
       if (bone == this.highlightedBone) {
-        trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + Bone.CYL_RADIUS;
-        trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1];
-        trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2];
+        let boneVec = Vec3.difference(bone.endpoint, bone.position);
+        
+        let dir1 = new Vec3([0, 0, 1]);
+        dir1 = Vec3.difference(dir1, boneVec.scale(Vec3.dot(dir1, boneVec)));
+        dir1 = dir1.normalize();
+        let dir2 = Vec3.cross(dir1, boneVec);
+        dir2 = dir2.normalize();
 
-        trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - Bone.CYL_RADIUS;
-        trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1];
-        trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2];
+        trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + (dir1[0] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1] + (dir1[1] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2] + (dir1[2] * Bone.CYL_RADIUS);
 
-        trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0];
-        trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1];
-        trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + Bone.CYL_RADIUS;
+        trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - (dir1[0] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1] - (dir1[1] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2] - (dir1[1] * Bone.CYL_RADIUS);
 
-        trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0];
-        trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1];
-        trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - Bone.CYL_RADIUS;
+        trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0] + (dir2[0] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1] + (dir2[1] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + (dir2[2] * Bone.CYL_RADIUS);
+
+        trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0] - (dir2[0] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1] - (dir2[1] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - (dir2[2] * Bone.CYL_RADIUS);
       } else {
         for (let i = 0; i < res.length; i++) {
           trans[(3 * numbones) + (12 * index) + 0 + i] = Mesh.OFF_SCREEN;
