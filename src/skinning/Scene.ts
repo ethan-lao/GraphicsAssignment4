@@ -52,7 +52,7 @@ export class Bone {
   public initialTransformation: Mat4;
 
   static readonly RAY_EPSILON: number = .0001;
-  static readonly CYL_RADIUS: number = .1;
+  static readonly CYL_RADIUS: number = .07;
 
   public localRot;
   public relativePos;
@@ -75,7 +75,9 @@ export class Bone {
   public intersect(pos: Vec3, dir: Vec3): number {
     let start = this.position;
     let end = this.endpoint;
-    let boneDir = Vec3.difference(end, start).normalize();
+    let boneDir = Vec3.difference(end, start)
+    boneDir = this.rotation.multiplyVec3(boneDir);
+    boneDir = boneDir.normalize();
 
     // https://www.geeksforgeeks.org/shortest-distance-between-two-lines-in-3d-space-class-12-maths/
     
@@ -249,6 +251,7 @@ export class Mesh {
 
       if (bone == this.highlightedBone) {
         let boneVec = Vec3.difference(bone.endpoint, bone.position);
+        boneVec = bone.rotation.multiplyVec3(boneVec);
         boneVec = boneVec.normalize();
 
         let dir1 = new Vec3([0.61324, 0.1259812, 0.35284]);
@@ -258,24 +261,42 @@ export class Mesh {
         let dir2 = Vec3.cross(dir1, boneVec);
         dir2 = dir2.normalize();
 
-        console.log(dir1);
-        console.log(dir2);
+        dir1 = dir1.scale(Bone.CYL_RADIUS)
+        dir2 = dir2.scale(Bone.CYL_RADIUS)
 
-        trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + (dir1[0] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1] + (dir1[1] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2] + (dir1[2] * Bone.CYL_RADIUS);
+        // console.log(dir1);
+        // console.log(dir2);
 
-        trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - (dir1[0] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1] - (dir1[1] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2] - (dir1[1] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + (dir1.x);
+        trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1] + (dir1.y);
+        trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2] + (dir1.z);
 
-        trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0] + (dir2[0] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1] + (dir2[1] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + (dir2[2] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - (dir1.x);
+        trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1] - (dir1.y);
+        trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2] - (dir1.z);
 
-        trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0] - (dir2[0] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1] - (dir2[1] * Bone.CYL_RADIUS);
-        trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - (dir2[2] * Bone.CYL_RADIUS);
+        trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0] + (dir2.x);
+        trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1] + (dir2.y);
+        trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + (dir2.z);
+
+        trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0] - (dir2.x);
+        trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1] - (dir2.y);
+        trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - (dir2.z);
+        // trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + (dir1[0] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1] + (dir1[1] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 0 + 2] = res[2] + (dir1[2] * Bone.CYL_RADIUS);
+
+        // trans[(3 * numbones) + (12 * index) + 3 + 0] = res[0] - (dir1[0] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 3 + 1] = res[1] - (dir1[1] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 3 + 2] = res[2] - (dir1[2] * Bone.CYL_RADIUS);
+
+        // trans[(3 * numbones) + (12 * index) + 6 + 0] = res[0] + (dir2[0] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 6 + 1] = res[1] + (dir2[1] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 6 + 2] = res[2] + (dir2[2] * Bone.CYL_RADIUS);
+
+        // trans[(3 * numbones) + (12 * index) + 9 + 0] = res[0] - (dir2[0] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 9 + 1] = res[1] - (dir2[1] * Bone.CYL_RADIUS);
+        // trans[(3 * numbones) + (12 * index) + 9 + 2] = res[2] - (dir2[2] * Bone.CYL_RADIUS);
       } else {
         for (let i = 0; i < res.length; i++) {
           trans[(3 * numbones) + (12 * index) + 0 + i] = Mesh.OFF_SCREEN;
