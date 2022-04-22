@@ -249,12 +249,17 @@ export class Mesh {
 
       if (bone == this.highlightedBone) {
         let boneVec = Vec3.difference(bone.endpoint, bone.position);
-        
-        let dir1 = new Vec3([0, 0, 1]);
+        boneVec = boneVec.normalize();
+
+        let dir1 = new Vec3([0.61324, 0.1259812, 0.35284]);
+        dir1 = dir1.normalize();
         dir1 = Vec3.difference(dir1, boneVec.scale(Vec3.dot(dir1, boneVec)));
         dir1 = dir1.normalize();
         let dir2 = Vec3.cross(dir1, boneVec);
         dir2 = dir2.normalize();
+
+        console.log(dir1);
+        console.log(dir2);
 
         trans[(3 * numbones) + (12 * index) + 0 + 0] = res[0] + (dir1[0] * Bone.CYL_RADIUS);
         trans[(3 * numbones) + (12 * index) + 0 + 1] = res[1] + (dir1[1] * Bone.CYL_RADIUS);
